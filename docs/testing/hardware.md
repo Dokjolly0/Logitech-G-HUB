@@ -21,6 +21,9 @@ build\win-msvc\tests\Release\periph-hwtest.exe
 PERIPH_HW_TEST=1 build/linux-gcc/tests/periph-hwtest
 ```
 
+The full Ubuntu procedure (toolchain, udev permissions, cable and receiver runs, troubleshooting) is in
+[linux.md](linux.md).
+
 ## Rules for write tests
 
 Every test that changes device state must:

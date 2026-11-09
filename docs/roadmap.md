@@ -1,6 +1,7 @@
 # Roadmap
 
 Target: every setting G HUB exposes for the G502 LIGHTSPEED, on Windows 11 and Ubuntu 26.04, firmware updates excluded.
+Each task is described in detail in [plan.md](plan.md); this page only tracks progress.
 
 Definition of done for every task:
 

@@ -52,6 +52,6 @@ periph-probe --trace    # also print raw HID++ frames
 ## Documentation
 
 - [Architecture](docs/architecture.md)
-- [Roadmap](docs/roadmap.md)
-- [Hardware testing](docs/testing/hardware.md)
+- [Implementation plan](docs/plan.md) and [roadmap](docs/roadmap.md) (progress)
+- [Hardware testing](docs/testing/hardware.md) and [testing on Linux](docs/testing/linux.md)
 - [Reverse-engineering notes on G HUB](docs/re/FINDINGS.md) (interoperability only)
