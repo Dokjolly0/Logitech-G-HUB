@@ -3,6 +3,7 @@
 // It never sends a "set" command.
 
 #include "periph/device.hpp"
+#include "periph/hid_transport.hpp"
 
 #include <algorithm>
 #include <format>
@@ -64,13 +65,14 @@ int main(int argc, char** argv) {
 
     for (const auto& ep : endpoints) {
         std::println("\n== {} (PID {:04X}, {} collection(s))", ep.product, ep.product_id, ep.collections.size());
-        auto channel = Channel::open(ep);
-        if (!channel) {
-            std::println("  cannot open: {}", channel.error().describe());
+        auto transport = open_hid_transport(ep);
+        if (!transport) {
+            std::println("  cannot open: {}", transport.error());
             continue;
         }
+        Channel channel{std::move(*transport)};
 
-        auto direct = Device::probe(*channel, kDirectIndex);
+        auto direct = Device::probe(channel, kDirectIndex);
         if (direct) {
             report_device(*direct);
             continue;
@@ -83,7 +85,7 @@ int main(int argc, char** argv) {
         // HID++ 1.0 at 0xFF => this is a receiver; paired devices live at indexes 1..6.
         std::println("  receiver (HID++ 1.0); scanning paired slots");
         for (std::uint8_t slot = 1; slot <= 6; ++slot) {
-            auto dev = Device::probe(*channel, slot, std::chrono::milliseconds{300});
+            auto dev = Device::probe(channel, slot, std::chrono::milliseconds{300});
             if (dev) report_device(*dev);
             else std::println("  [index 0x{:02X}] {}", slot, dev.error().describe());
         }

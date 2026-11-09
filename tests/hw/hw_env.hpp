@@ -1,0 +1,41 @@
+#pragma once
+// Guards and helpers for hardware tests. They run only with PERIPH_HW_TEST=1
+// and a G502 LIGHTSPEED attached (cable or receiver). See docs/testing/hardware.md.
+
+#include "periph/device.hpp"
+
+#include <memory>
+#include <optional>
+
+namespace periph::hwtest {
+
+// True when PERIPH_HW_TEST=1.
+bool enabled();
+
+// True when the G HUB agent is running (it would fight our writes).
+bool ghub_running();
+
+// An open channel plus the probed G502, kept alive together.
+struct Target {
+    std::unique_ptr<hidpp::Channel> channel;
+    hidpp::Device device;
+    bool wireless{};
+};
+
+// Finds the G502 LIGHTSPEED: wired (C08D) first, then receiver C539 slot 1.
+std::optional<Target> find_g502();
+
+} // namespace periph::hwtest
+
+// Skip unless hardware tests are enabled. Tests that write must also call
+// PERIPH_HW_REQUIRE_EXCLUSIVE().
+#define PERIPH_HW_REQUIRE()                                                         \
+    do {                                                                            \
+        if (!::periph::hwtest::enabled()) GTEST_SKIP() << "set PERIPH_HW_TEST=1";   \
+    } while (0)
+
+#define PERIPH_HW_REQUIRE_EXCLUSIVE()                                                      \
+    do {                                                                                   \
+        PERIPH_HW_REQUIRE();                                                               \
+        if (::periph::hwtest::ghub_running()) FAIL() << "close G HUB (lghub_agent) first"; \
+    } while (0)
