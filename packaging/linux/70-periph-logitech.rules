@@ -1,0 +1,5 @@
+# Give the logged-in user access to Logitech hidraw nodes (USB and Bluetooth),
+# so periph does not need root.
+# Install: sudo cp 70-periph-logitech.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger
+SUBSYSTEM=="hidraw", KERNELS=="0003:046D:*", TAG+="uaccess"
+SUBSYSTEM=="hidraw", KERNELS=="0005:046D:*", TAG+="uaccess"
