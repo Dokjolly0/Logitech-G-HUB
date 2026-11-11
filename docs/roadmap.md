@@ -14,7 +14,7 @@ Definition of done for every task:
 ## Phase 0: Foundations
 
 - [x] 0.1 Repository layout (core/ui split), CMake presets, GoogleTest, `ITransport` + fakes, architecture test
-- [ ] 0.2 Feature matrix: inventory of every G HUB setting for the G502
+- [ ] 0.2 Feature matrix: inventory of every G HUB setting for the G502 — [feature-matrix.md](feature-matrix.md) and `docs.feature_matrix` check done; G HUB UI walk on Windows pending
 - [ ] 0.3 Robust transport: reader thread, notifications, hotplug, reconnect, cable/wireless switch
 - [ ] 0.4 Device registry: stable identity, wired and wireless merged into one logical device
 - [ ] 0.5 Daemon + JSON-RPC IPC + client library + `periphctl list|info`

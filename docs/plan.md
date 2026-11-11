@@ -33,6 +33,8 @@ Observed with `periph-probe` and in the G HUB device database:
 | Lighting | `MOUSE_RGB_ZONAL`, zones PRIMARY and LOGO, effects OFF / FIXED / CYCLE / BREATHING, low-battery effect, DPI lighting |
 | Inputs | layers BASE and G-Shift, 11 programmable controls |
 | Pairing | receiver type `LS1`, pairing action "power cycle" |
+| Onboard memory | 5 profiles (1 enabled out of the box) + 1 factory profile, 11 buttons, 16 sectors × 255 bytes, profile format 3, macro format 1 |
+| Firmware | main `MPM` 17.00 build 0008, bootloader `BOT` 92.00 build 0008 |
 | Other | Powerplay compatible |
 
 ### Clean-room rule
@@ -114,6 +116,9 @@ All pinned; a system package is preferred when available, otherwise CMake FetchC
   (`docs/re/agent_ws_paths.txt`) to list every setting: assignments, macros, sensitivity, lighting, profiles, device
   settings and application settings. Each row records the HID++ feature or mechanism, the task that implements it and
   its status. This table is the acceptance checklist for "100 %".
+  Done so far: [feature-matrix.md](feature-matrix.md) with 71 rows, device facts read from the G502 (read-only), and an
+  appendix that classifies every remaining agent path. The `docs.feature_matrix` test (`cmake/CheckFeatureMatrix.cmake`)
+  keeps it consistent with the roadmap and the agent API. Pending: the UI walk on Windows (❓ → ✓).
 - **0.3 Robust transport.**
   - Reader thread and dispatcher that separates replies from notifications; timeouts and retries.
   - Hotplug: Windows `CM_Register_Notification`, Linux udev monitor. Reconnection.

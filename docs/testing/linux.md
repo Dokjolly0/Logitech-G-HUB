@@ -75,7 +75,8 @@ cmake --build --preset linux-gcc
 ctest --preset linux-gcc
 ```
 
-Expected: every `unit` test passes (32 as of task 0.1), and the 3 `hw` tests show as *Skipped*.
+Expected: every `unit` test passes (33 as of task 0.2, including `docs.feature_matrix`), and the 3 `hw` tests show
+as *Skipped*.
 
 Useful variations:
 

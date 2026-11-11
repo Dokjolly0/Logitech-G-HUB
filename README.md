@@ -8,7 +8,7 @@ The goal is full parity with every setting G HUB exposes for the **G502 LIGHTSPE
 
 ## Status
 
-Phase 0 (foundations). See [docs/roadmap.md](docs/roadmap.md).
+Phase 0 (foundations). See [docs/roadmap.md](docs/roadmap.md) and [docs/feature-matrix.md](docs/feature-matrix.md).
 
 | Component | State |
 |---|---|
@@ -54,6 +54,7 @@ periph-probe --trace    # also print raw HID++ frames
 ## Documentation
 
 - [Architecture](docs/architecture.md)
-- [Implementation plan](docs/plan.md) and [roadmap](docs/roadmap.md) (progress)
+- [Implementation plan](docs/plan.md), [roadmap](docs/roadmap.md) (progress) and [feature matrix](docs/feature-matrix.md)
+  (acceptance checklist)
 - [Hardware testing](docs/testing/hardware.md) and [testing on Linux](docs/testing/linux.md)
 - [Reverse-engineering notes on G HUB](docs/re/FINDINGS.md) (interoperability only)

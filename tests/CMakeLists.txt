@@ -30,3 +30,8 @@ gtest_discover_tests(periph-hwtest PROPERTIES LABELS hw)
 add_test(NAME architecture.no_qt_outside_ui
     COMMAND ${CMAKE_COMMAND} -DROOT=${PROJECT_SOURCE_DIR} -P ${PROJECT_SOURCE_DIR}/cmake/CheckNoQt.cmake)
 set_tests_properties(architecture.no_qt_outside_ui PROPERTIES LABELS unit)
+
+# ---- Docs: feature matrix consistent with the roadmap and the G HUB agent API
+add_test(NAME docs.feature_matrix
+    COMMAND ${CMAKE_COMMAND} -DROOT=${PROJECT_SOURCE_DIR} -P ${PROJECT_SOURCE_DIR}/cmake/CheckFeatureMatrix.cmake)
+set_tests_properties(docs.feature_matrix PROPERTIES LABELS unit)
