@@ -116,3 +116,68 @@ TEST(Receiver, ReportsHidpp10AtDirectIndexAndOfflineSlots) {
     ASSERT_FALSE(slot);
     EXPECT_EQ(slot.error().code, 0x09);
 }
+
+TEST_F(G502Fixture, ProbeRetriesPingWhileWirelessMouseWakesUp) {
+    sim.sleeping_pings = 2;
+    auto dev = Device::probe(channel, kDirectIndex, std::chrono::milliseconds{20});
+    ASSERT_TRUE(dev) << dev.error().describe();
+    EXPECT_EQ(dev->features().size(), sim.features.size());
+}
+
+TEST_F(G502Fixture, ProbeGivesUpAfterLastPingAttempt) {
+    sim.sleeping_pings = 3;
+    auto dev = Device::probe(channel, kDirectIndex, std::chrono::milliseconds{20});
+    ASSERT_FALSE(dev);
+    EXPECT_EQ(dev.error().kind, ErrorKind::Timeout);
+}
+
+TEST(Receiver, ErrorsAreNotRetried) {
+    auto transport = test::fake_receiver_transport(0x09);
+    auto* raw = transport.get();
+    Channel channel{std::move(transport)};
+    ASSERT_FALSE(Device::probe(channel, 1, std::chrono::milliseconds{50}));
+    EXPECT_EQ(raw->sent().size(), 1u);
+}
+
+// Linux hid-logitech-dj: requests on the child node get the slot as device
+// index, so replies never come back at 0xFF. The endpoint's device_index
+// (the slot) must be used instead.
+TEST(DjChild, AnswersOnlyAtItsSlotIndex) {
+    FakeG502 sim;
+    sim.device_index = 1;
+    Channel channel{sim.dj_child_transport()};
+
+    auto at_ff = Device::probe(channel, kDirectIndex, std::chrono::milliseconds{20}, 1);
+    ASSERT_FALSE(at_ff);
+    EXPECT_EQ(at_ff.error().kind, ErrorKind::Timeout);
+
+    auto at_slot = Device::probe(channel, 1, std::chrono::milliseconds{20});
+    ASSERT_TRUE(at_slot) << at_slot.error().describe();
+    auto name = at_slot->name();
+    ASSERT_TRUE(name);
+    EXPECT_EQ(*name, sim.name);
+}
+
+// Wired and wireless feature tables differ (real hardware, Windows and Linux):
+// feature indexes must be looked up per connection, never reused.
+TEST(Wireless, FeatureIndexesDifferFromWired) {
+    FakeG502 wired;
+    auto sim = FakeG502::wireless();
+    Channel wired_channel{wired.transport()};
+    Channel wireless_channel{sim.transport()};
+    auto w = Device::probe(wired_channel, kDirectIndex);
+    auto r = Device::probe(wireless_channel, 1);
+    ASSERT_TRUE(w && r);
+
+    EXPECT_EQ(w->features().size(), r->features().size());
+    EXPECT_EQ(w->index_of(feature::AdjustableDpi), r->index_of(feature::AdjustableDpi)); // 12 on both
+    EXPECT_EQ(*w->index_of(0x1802) - 1, *r->index_of(0x1802));                       // shifted by 0x00C2
+    EXPECT_TRUE(w->index_of(0x00C2));
+    EXPECT_FALSE(r->index_of(0x00C2));
+    EXPECT_FALSE(w->index_of(0x2121));
+    EXPECT_EQ(r->index_of(0x2121), 29);
+
+    auto dpi = read_dpi(*r);
+    ASSERT_TRUE(dpi) << dpi.error().describe();
+    EXPECT_EQ(dpi->current, sim.dpi);
+}

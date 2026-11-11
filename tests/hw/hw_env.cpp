@@ -35,22 +35,38 @@ bool ghub_running() {
 #endif
 }
 
-std::optional<Target> find_g502() {
+std::vector<Target> find_g502_all() {
     constexpr std::uint16_t kWired = 0xC08D;
     constexpr std::uint16_t kReceiver = 0xC539;
-    for (const auto pid : {kWired, kReceiver}) {
-        for (const auto& ep : find_endpoints()) {
-            if (ep.product_id != pid) continue;
+    constexpr std::uint16_t kWirelessChild = 0x407F; // Linux hid-logitech-dj node
+    struct Path {
+        std::uint16_t pid;
+        const char* via;
+    };
+    constexpr Path kPaths[] = {{kWired, "cable"}, {kReceiver, "receiver"}, {kWirelessChild, "hid-logitech-dj node"}};
+
+    std::vector<Target> found;
+    const auto endpoints = find_endpoints();
+    for (const auto& path : kPaths) {
+        for (const auto& ep : endpoints) {
+            if (ep.product_id != path.pid) continue;
+            const std::uint8_t index = path.pid == kReceiver ? std::uint8_t{1} : ep.device_index;
             auto transport = open_hid_transport(ep);
             if (!transport) continue;
             auto channel = std::make_unique<Channel>(std::move(*transport));
-            const std::uint8_t index = pid == kWired ? kDirectIndex : 1;
             auto dev = Device::probe(*channel, index);
             if (!dev) continue;
-            return Target{std::move(channel), std::move(*dev), pid == kReceiver};
+            found.push_back(Target{std::move(channel), std::move(*dev), path.pid != kWired, path.via});
+            break;
         }
     }
-    return std::nullopt;
+    return found;
+}
+
+std::optional<Target> find_g502() {
+    auto all = find_g502_all();
+    if (all.empty()) return std::nullopt;
+    return std::move(all.front());
 }
 
 } // namespace periph::hwtest

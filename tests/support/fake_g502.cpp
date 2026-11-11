@@ -18,6 +18,14 @@ FakeG502::FakeG502() {
     };
 }
 
+FakeG502 FakeG502::wireless(std::uint8_t slot) {
+    FakeG502 sim;
+    sim.device_index = slot;
+    std::erase_if(sim.features, [](const FakeFeature& f) { return f.id == 0x00C2; });
+    sim.features.push_back({0x2121, 0x00, 0});
+    return sim;
+}
+
 std::uint8_t FakeG502::index_of(std::uint16_t id) const {
     for (std::size_t i = 0; i < features.size(); ++i)
         if (features[i].id == id) return static_cast<std::uint8_t>(i);
@@ -40,6 +48,10 @@ std::vector<Frame> FakeG502::handle(std::span<const std::uint8_t> rq) const {
 
     switch (id) {
         case feature::Root:
+            if (fn == 1 && sleeping_pings > 0) {
+                --sleeping_pings;
+                return {};
+            }
             if (fn == 0) {
                 const auto wanted = static_cast<std::uint16_t>(p(0) << 8 | p(1));
                 const auto idx = index_of(wanted);
@@ -90,6 +102,14 @@ std::vector<Frame> FakeG502::handle(std::span<const std::uint8_t> rq) const {
 
 std::unique_ptr<FakeTransport> FakeG502::transport() const {
     return std::make_unique<FakeTransport>([this](std::span<const std::uint8_t> rq) { return handle(rq); });
+}
+
+std::unique_ptr<FakeTransport> FakeG502::dj_child_transport() const {
+    return std::make_unique<FakeTransport>([this](std::span<const std::uint8_t> rq) {
+        Frame rewritten(rq.begin(), rq.end());
+        if (rewritten.size() > 1) rewritten[1] = device_index;
+        return handle(rewritten);
+    });
 }
 
 std::unique_ptr<FakeTransport> fake_receiver_transport(std::uint8_t slot_error) {

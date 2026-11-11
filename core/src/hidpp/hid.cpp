@@ -2,7 +2,10 @@
 
 #include <hidapi.h>
 
+#include <charconv>
+#include <fstream>
 #include <mutex>
+#include <sstream>
 
 namespace periph::hid {
 namespace {
@@ -41,7 +44,52 @@ std::string error_of(hid_device* handle) {
     return message.empty() ? std::string{"unknown HID error"} : message;
 }
 
+// Linux: enrich a hidraw entry with what only sysfs knows (DJ slot, kernel name).
+void add_sysfs_info([[maybe_unused]] DeviceInfo& info) {
+#ifdef __linux__
+    const auto slash = info.path.rfind('/');
+    if (slash == std::string::npos || !info.path.starts_with("/dev/hidraw")) return;
+    std::ifstream file{"/sys/class/hidraw/" + info.path.substr(slash + 1) + "/device/uevent"};
+    if (!file) return;
+    std::stringstream text;
+    text << file.rdbuf();
+    const auto uevent = detail::parse_uevent(text.str());
+    info.receiver_slot = detail::receiver_slot_from_phys(uevent.phys);
+    // hidapi reports the receiver's USB product string for DJ children.
+    if (info.receiver_slot && !uevent.name.empty()) info.product = uevent.name;
+#endif
+}
+
 } // namespace
+
+namespace detail {
+
+Uevent parse_uevent(std::string_view text) {
+    Uevent result;
+    while (!text.empty()) {
+        const auto eol = text.find('\n');
+        const auto line = text.substr(0, eol);
+        if (line.starts_with("HID_NAME=")) result.name = std::string{line.substr(9)};
+        else if (line.starts_with("HID_PHYS=")) result.phys = std::string{line.substr(9)};
+        if (eol == std::string_view::npos) break;
+        text.remove_prefix(eol + 1);
+    }
+    return result;
+}
+
+std::optional<std::uint8_t> receiver_slot_from_phys(std::string_view phys) {
+    const auto input = phys.rfind("/input");
+    if (input == std::string_view::npos) return std::nullopt;
+    const auto colon = phys.find(':', input);
+    if (colon == std::string_view::npos) return std::nullopt;
+    const auto digits = phys.substr(colon + 1);
+    unsigned slot = 0;
+    auto [end, ec] = std::from_chars(digits.data(), digits.data() + digits.size(), slot);
+    if (ec != std::errc{} || end != digits.data() + digits.size() || slot < 1 || slot > 6) return std::nullopt;
+    return static_cast<std::uint8_t>(slot);
+}
+
+} // namespace detail
 
 void Device::Closer::operator()(hid_device_* handle) const noexcept {
     if (handle != nullptr) hid_close(handle);
@@ -61,7 +109,9 @@ std::vector<DeviceInfo> enumerate(std::uint16_t vendor_id) {
             .interface_number = it->interface_number,
             .product = to_utf8(it->product_string),
             .serial = to_utf8(it->serial_number),
+            .receiver_slot = std::nullopt,
         });
+        add_sysfs_info(result.back());
     }
     hid_free_enumeration(list);
     return result;

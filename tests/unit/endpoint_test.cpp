@@ -15,7 +15,8 @@ hid::DeviceInfo info(std::string path, std::uint16_t usage_page, std::uint16_t u
                            .usage = usage,
                            .interface_number = 2,
                            .product = "G502",
-                           .serial = {}};
+                           .serial = {},
+                           .receiver_slot = std::nullopt};
 }
 
 constexpr const char* kGuid = "{4d1e55b2-f16f-11cf-88cb-001111000030}";
@@ -57,4 +58,51 @@ TEST(GroupEndpoints, LinuxReportsOnePathPerUsageAndKeepsLong) {
     ASSERT_EQ(eps.size(), 1u);
     ASSERT_EQ(eps[0].collections.size(), 1u);
     EXPECT_EQ(eps[0].collections[0].usage, kUsageLong);
+}
+
+TEST(GroupEndpoints, DjChildNodeUsesItsReceiverSlot) {
+    auto child = info("/dev/hidraw4", kUsagePage, kUsageLong, 0x407F);
+    child.receiver_slot = 1;
+    child.product = "Logitech G502";
+    auto eps = group_endpoints({
+        info("/dev/hidraw3", kUsagePage, kUsageShort, 0xC539),
+        info("/dev/hidraw3", kUsagePage, kUsageLong, 0xC539),
+        child,
+    });
+    ASSERT_EQ(eps.size(), 2u);
+    for (const auto& ep : eps) {
+        if (ep.product_id == 0xC539) {
+            EXPECT_EQ(ep.device_index, kDirectIndex);
+            EXPECT_FALSE(ep.is_dj_child());
+        } else {
+            EXPECT_EQ(ep.device_index, 1);
+            EXPECT_TRUE(ep.is_dj_child());
+            EXPECT_EQ(ep.product, "Logitech G502");
+        }
+    }
+}
+
+// Real uevent of the G502 behind a Lightspeed receiver (Ubuntu 26.04, kernel 7.0).
+TEST(Sysfs, ParsesUevent) {
+    const auto u = hid::detail::parse_uevent(
+        "DRIVER=logitech-hidpp-device\n"
+        "HID_ID=0003:0000046D:0000407F\n"
+        "HID_NAME=Logitech G502\n"
+        "HID_PHYS=usb-0000:00:14.0-1/input2:1\n"
+        "HID_UNIQ=81-53-50-ee\n"
+        "MODALIAS=hid:b0003g0102v0000046Dp0000407F\n");
+    EXPECT_EQ(u.name, "Logitech G502");
+    EXPECT_EQ(u.phys, "usb-0000:00:14.0-1/input2:1");
+}
+
+TEST(Sysfs, ReceiverSlotFromPhys) {
+    using hid::detail::receiver_slot_from_phys;
+    EXPECT_EQ(receiver_slot_from_phys("usb-0000:00:14.0-1/input2:1"), 1);
+    EXPECT_EQ(receiver_slot_from_phys("usb-0000:00:14.0-11/input2:6"), 6);
+    EXPECT_FALSE(receiver_slot_from_phys("usb-0000:00:14.0-1/input2"));   // receiver itself
+    EXPECT_FALSE(receiver_slot_from_phys("usb-0000:00:14.0-3/input2"));   // wired G502
+    EXPECT_FALSE(receiver_slot_from_phys("a4:c3:f0:11:22:33"));           // Bluetooth
+    EXPECT_FALSE(receiver_slot_from_phys("usb-0000:00:14.0-1/input2:7")); // not a slot
+    EXPECT_FALSE(receiver_slot_from_phys("usb-0000:00:14.0-1/input2:"));
+    EXPECT_FALSE(receiver_slot_from_phys(""));
 }

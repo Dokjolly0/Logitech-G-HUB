@@ -64,7 +64,8 @@ int main(int argc, char** argv) {
     }
 
     for (const auto& ep : endpoints) {
-        std::println("\n== {} (PID {:04X}, {} collection(s))", ep.product, ep.product_id, ep.collections.size());
+        std::println("\n== {} (PID {:04X}, {} collection(s){})", ep.product, ep.product_id, ep.collections.size(),
+                     ep.is_dj_child() ? std::format(", hid-logitech-dj slot {}", ep.device_index) : "");
         auto transport = open_hid_transport(ep);
         if (!transport) {
             std::println("  cannot open: {}", transport.error());
@@ -72,13 +73,14 @@ int main(int argc, char** argv) {
         }
         Channel channel{std::move(*transport)};
 
-        auto direct = Device::probe(channel, kDirectIndex);
+        // Linux DJ child nodes only accept their slot index (the kernel rewrites it).
+        auto direct = Device::probe(channel, ep.device_index);
         if (direct) {
             report_device(*direct);
             continue;
         }
-        if (direct.error().kind != ErrorKind::Hidpp10) {
-            std::println("  no answer at index 0xFF: {}", direct.error().describe());
+        if (direct.error().kind != ErrorKind::Hidpp10 || ep.is_dj_child()) {
+            std::println("  no answer at index 0x{:02X}: {}", ep.device_index, direct.error().describe());
             continue;
         }
 

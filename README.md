@@ -14,12 +14,14 @@ Phase 0 (foundations). See [docs/roadmap.md](docs/roadmap.md).
 |---|---|
 | `periph_core` HID++ transport, feature discovery, battery/DPI/report-rate reads | ✅ |
 | `periph-probe` read-only diagnostic | ✅ |
+| Verified on hardware | Windows 11 (cable), Ubuntu 26.04 (cable, receiver and `hid-logitech-dj` node) |
 | `periphd` daemon, `periphctl` CLI, Qt UI | planned |
 
 ## Build
 
 Requirements: CMake ≥ 3.25 and a C++23 compiler (MSVC 17.10+, GCC 14+, Clang 18+).
-hidapi and GoogleTest come from system packages when available, otherwise CMake downloads pinned releases.
+hidapi and GoogleTest come from system packages when available (on Linux hidapi is also found through pkg-config),
+otherwise CMake downloads pinned releases.
 
 ```sh
 # Windows (Visual Studio 2022)
@@ -27,7 +29,7 @@ cmake --preset win-msvc
 cmake --build --preset win-msvc
 ctest --preset win-msvc
 
-# Linux (Ubuntu: sudo apt install build-essential cmake ninja-build libudev-dev)
+# Linux (Ubuntu: sudo apt install build-essential cmake ninja-build pkg-config libudev-dev libhidapi-dev googletest)
 cmake --preset linux-gcc
 cmake --build --preset linux-gcc
 ctest --preset linux-gcc

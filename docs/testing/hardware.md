@@ -4,7 +4,10 @@ Hardware tests live in `tests/hw/` and build into `periph-hwtest`. They are skip
 
 ## Requirements
 
-- A G502 LIGHTSPEED attached by cable (`046D:C08D`) or through its Lightspeed receiver (`046D:C539`, slot 1).
+- A G502 LIGHTSPEED attached by cable (`046D:C08D`) or through its Lightspeed receiver (`046D:C539`, slot 1). On Linux
+  the mouse is also reachable through its own `hid-logitech-dj` node (`046D:407F`).
+- By cable, the mouse must be enumerated as a USB device: `lsusb` must list `046d:c08d`. If it is charging but not
+  listed, the data link did not come up and the mouse stays on the receiver; replug the cable.
 - **Tests that write to the device need exclusive access.** Quit G HUB completely (tray icon → Quit) so that `lghub_agent.exe` is not running. Such tests call `PERIPH_HW_REQUIRE_EXCLUSIVE()` and fail if G HUB is still active.
 - On Linux, install the udev rule from `packaging/linux/` first.
 
@@ -23,6 +26,14 @@ PERIPH_HW_TEST=1 build/linux-gcc/tests/periph-hwtest
 
 The full Ubuntu procedure (toolchain, udev permissions, cable and receiver runs, troubleshooting) is in
 [linux.md](linux.md).
+
+## Tests
+
+| Test | Checks | Paths |
+|---|---|---|
+| `HwProbe.FindsG502WithExpectedFeatures` | HID++ ≥ 2.0, public features present, name contains "G502"; prints the path used | first found: cable, receiver, DJ node |
+| `HwProbe.ReadingsAreInPlausibleRanges` | battery 3000–4500 mV, DPI 100–25600, current report rate in the supported list | first found |
+| `HwProbe.WirelessPathsReportTheSameFeatureTable` | receiver and DJ node report the same protocol and feature table | Linux, wireless; skipped elsewhere |
 
 ## Rules for write tests
 
@@ -47,4 +58,5 @@ Each feature is tested on both operating systems and, where relevant, on both co
 | Date | Task | OS | Connection | Result |
 |---|---|---|---|---|
 | 2026-11-09 | 0.1 | Windows 11 | cable | `HwProbe.*` 2/2 passed |
-| pending | 0.1 | Ubuntu 26.04 | cable | not run yet (build + `HwProbe.*`) |
+| 2026-11-11 | 0.1 | Ubuntu 26.04 | receiver (+ DJ node `407F`) | unit 32/32; `HwProbe.*` 3/3 passed, via receiver |
+| 2026-11-11 | 0.1 | Ubuntu 26.04 | cable | unit 32/32; `HwProbe.*` 2/2 passed via cable, wireless-paths test skipped |

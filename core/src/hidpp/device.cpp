@@ -16,12 +16,15 @@ Error not_supported(std::uint16_t feature_id) {
 
 } // namespace
 
-Result<Device> Device::probe(Channel& channel, std::uint8_t device_index, std::chrono::milliseconds timeout) {
+Result<Device> Device::probe(Channel& channel, std::uint8_t device_index, std::chrono::milliseconds timeout,
+                             int ping_attempts) {
     Device dev{channel, device_index};
 
     // Root.GetProtocolVersion(0, 0, ping): HID++ 1.0 devices answer with error 0x8F.
     const std::array<std::uint8_t, 3> ping{0x00, 0x00, 0x5A};
     auto version = channel.request(device_index, 0x00, 0x1, ping, timeout);
+    for (int attempt = 1; attempt < ping_attempts && !version && version.error().kind == ErrorKind::Timeout; ++attempt)
+        version = channel.request(device_index, 0x00, 0x1, ping, timeout);
     if (!version) return std::unexpected(version.error());
     dev.major_ = (*version)[0];
     dev.minor_ = (*version)[1];

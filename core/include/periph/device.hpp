@@ -38,9 +38,12 @@ struct FeatureInfo {
 
 class Device {
 public:
-    // Pings the device and reads its full feature table.
+    // Pings the device and reads its full feature table. A wireless device that
+    // is asleep drops the first ping while it wakes up, so a timed-out ping is
+    // retried up to ping_attempts times in total.
     static Result<Device> probe(Channel& channel, std::uint8_t device_index,
-                                std::chrono::milliseconds timeout = std::chrono::milliseconds{400});
+                                std::chrono::milliseconds timeout = std::chrono::milliseconds{400},
+                                int ping_attempts = 3);
 
     [[nodiscard]] std::uint8_t index() const { return index_; }
     [[nodiscard]] std::pair<int, int> protocol() const { return {major_, minor_}; }

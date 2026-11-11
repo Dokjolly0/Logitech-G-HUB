@@ -15,6 +15,8 @@ Also in scope: Lua scripting, software LIGHTSYNC, per-application profiles, Disc
 - Commit `11d24b1`: HID++ library (hidapi 0.14 via FetchContent, framing, feature discovery, name/battery/DPI/report
   rate readers) and the read-only `periph-probe`, verified on the real mouse.
 - Commit `6603d1e` (task 0.1): core/tools/tests split, `ITransport`, fakes, unit and hardware tests, architecture test.
+- Task 0.1 on Ubuntu 26.04: system hidapi via pkg-config, `hid-logitech-dj` child nodes addressed by slot, ping
+  retried while a wireless mouse wakes up, wireless feature table in `FakeG502`.
 - Interoperability notes on G HUB: [re/FINDINGS.md](re/FINDINGS.md).
 
 ### Target device facts
@@ -24,7 +26,9 @@ Observed with `periph-probe` and in the G HUB device database:
 | Item | Value |
 |---|---|
 | Wired USB id | `046D:C08D`, device index `0xFF`, HID++ 4.2 |
-| Wireless | Lightspeed receiver `046D:C539`, slot 1 (also `046D:407F` as a Linux DJ child) |
+| Wireless | Lightspeed receiver `046D:C539`, slot 1, HID++ 4.2. On Linux `hid-logitech-dj` also creates a node `046D:407F` for the mouse, addressed by its slot (the kernel rewrites the device index) |
+| Feature table | Differs by connection. Wired has `0x00C2` at index 13; wireless lacks it and adds `0x2121` hi-res wheel at index 29, so every feature after index 12 moves by one. Indexes are always looked up per connection |
+| Power saving | Asleep, the mouse drops the first request over the receiver; the probe retries the ping (3 attempts) |
 | Public features | 0x0003 FW version, 0x0005 name/type, 0x1D4B wireless status, 0x0020 config change, 0x1001 battery voltage, 0x8070 v4 colour LED effects, 0x1300 LED control, 0x8100 onboard profiles, 0x8110 mouse button spy, 0x8060 report rate, 0x2201 adjustable DPI (100–25600, step 50) |
 | Lighting | `MOUSE_RGB_ZONAL`, zones PRIMARY and LOGO, effects OFF / FIXED / CYCLE / BREATHING, low-battery effect, DPI lighting |
 | Inputs | layers BASE and G-Shift, 11 programmable controls |
@@ -73,8 +77,8 @@ All pinned; a system package is preferred when available, otherwise CMake FetchC
 
 | Dependency | Used by | From task |
 |---|---|---|
-| hidapi 0.14.0 | core transport | done |
-| GoogleTest 1.15.2 | tests | done |
+| hidapi ≥ 0.14 (download: 0.14.0; Ubuntu 26.04: system 0.15.0 via pkg-config) | core transport | done |
+| GoogleTest ≥ 1.14 (download: 1.15.2; Ubuntu 26.04: system 1.17.0) | tests | done |
 | nlohmann_json | IPC, profile store | 0.5 |
 | Asio (standalone) | IPC transport | 0.5 |
 | Qt ≥ 6.6 (6.8 LTS recommended) | UI only | 0.6 |
@@ -103,7 +107,9 @@ All pinned; a system package is preferred when available, otherwise CMake FetchC
 
 - **0.1 Repository restructuring** ✅. Layout above, CMake presets (`win-msvc`, `linux-gcc`), clang-format/clang-tidy,
   GoogleTest, `ITransport` + `FakeTransport` + `FakeG502`, architecture test.
-  *HW:* `periph-probe` output unchanged.
+  Linux bring-up: hidapi from pkg-config, `hid-logitech-dj` nodes (slot from sysfs `HID_PHYS`), ping retry for a
+  sleeping wireless mouse, wired and wireless feature tables in `FakeG502`.
+  *HW:* `periph-probe` output unchanged; `HwProbe.*` on Windows (cable) and Ubuntu (cable, receiver and DJ node).
 - **0.2 Feature matrix.** Walk the G HUB UI for the G502 and cross-reference the agent API paths
   (`docs/re/agent_ws_paths.txt`) to list every setting: assignments, macros, sensitivity, lighting, profiles, device
   settings and application settings. Each row records the HID++ feature or mechanism, the task that implements it and

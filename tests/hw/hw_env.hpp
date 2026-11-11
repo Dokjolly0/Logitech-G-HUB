@@ -6,6 +6,8 @@
 
 #include <memory>
 #include <optional>
+#include <string>
+#include <vector>
 
 namespace periph::hwtest {
 
@@ -20,9 +22,15 @@ struct Target {
     std::unique_ptr<hidpp::Channel> channel;
     hidpp::Device device;
     bool wireless{};
+    std::string via; // "cable", "receiver" or "hid-logitech-dj node" (Linux)
 };
 
-// Finds the G502 LIGHTSPEED: wired (C08D) first, then receiver C539 slot 1.
+// Every path that currently reaches the G502 LIGHTSPEED, in preference order:
+// cable (C08D, index 0xFF), receiver C539 slot 1, and on Linux the
+// hid-logitech-dj node of the paired mouse (PID 407F, its slot index).
+std::vector<Target> find_g502_all();
+
+// The first entry of find_g502_all().
 std::optional<Target> find_g502();
 
 } // namespace periph::hwtest

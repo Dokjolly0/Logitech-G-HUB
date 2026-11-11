@@ -20,7 +20,11 @@ struct Endpoint {
     std::string key;
     std::uint16_t product_id{};
     std::string product;
+    // Index to address the device behind this endpoint: 0xFF for a wired
+    // device or a receiver, the paired slot for a Linux hid-logitech-dj node.
+    std::uint8_t device_index{kDirectIndex};
     std::vector<hid::DeviceInfo> collections;
+    [[nodiscard]] bool is_dj_child() const { return device_index != kDirectIndex; }
 };
 
 std::vector<Endpoint> find_endpoints();

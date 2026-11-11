@@ -73,6 +73,7 @@ std::vector<Endpoint> group_endpoints(std::vector<hid::DeviceInfo> infos) {
             ep.key = key;
             ep.product_id = info.product_id;
             ep.product = info.product;
+            if (info.receiver_slot) ep.device_index = *info.receiver_slot;
         }
         // Linux/macOS report the same path once per usage: open it only once,
         // but remember that long reports are available.
